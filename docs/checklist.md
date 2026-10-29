@@ -92,8 +92,9 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] A-06 Migration 005 admin/dev functions: reject-and-release (SD-1), `admin_set_status` (SD-5), `admin_users_v` fix (SD-10), manifest VOLATILE (SD-12), strict UUID (SD-13), `holder_names` (SD-17), config fields + null clears URL + first-setup insert (SD-19), top uploaders in health (SD-2); pgTAP `005_admin_dev_functions` 71/71, 136 total (verified)
 - [x] A-07 Migration 006 RLS/grants: explicit grant per function (incl. `reject_order(…, boolean)`, `admin_set_status`, `set_my_locale`); SD-3 default privileges incl. the global PUBLIC EXECUTE revoke; anon gets only `get_public_event` (200), everything else 401; pgTAP `006_rls_grants` 30/30, 165 total (verified)
 - [x] A-16 security queries in pgTAP (only `get_public_event` for anon, RLS everywhere, `search_path=''` on every SECURITY DEFINER) (verified)
-- [ ] A-08 Migration 007 storage (10 uploads/day)
-- [ ] A-09 Migration 008 cron
+- [x] A-08 Migration 007 storage: private 2 MB bucket; own folder only, strict `<uid>/<uuid>.<ext>` name (SD-4), active accounts only, 10 uploads per rolling 24 h (SD-2); no update/delete; `my_upload_quota()` for the client. Live Storage API: 11th upload 400, other folder 400, delete removes nothing (verified)
+- [x] A-09 Migration 008 cron: 3 jobs; notify URL + secret from Vault (SD-15), no-op until both exist (verified locally)
+- [ ] Vault secrets `notify_url` + `cron_secret` set on staging and prod (with the D-09 `CRON_SECRET` Edge secret); then `/dev/health` shows all 3 jobs succeeding
 - [ ] A-10 seed.sql
 - [ ] A-11 pgTAP role helpers
 - [ ] A-12 pgTAP T4–T6, T8–T10, T12
