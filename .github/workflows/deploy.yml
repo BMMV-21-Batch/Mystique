@@ -45,12 +45,30 @@ jobs:
       - name: Supabase Auth settings (site URL, Gmail SMTP, OTP, MFA, email template)
         env:
           SITE_URL: ${{ github.ref_name == 'prod' && 'https://mystique-26.pages.dev' || 'https://mystique-staging.pages.dev' }}
-          EXTRA_REDIRECTS: ${{ github.ref_name == 'prod' && '' || 'http://localhost:5173/**' }}
+          # Not `prod && '' || …`: in Actions expressions '' is falsy, so that form gave prod the localhost entry.
+          EXTRA_REDIRECTS: ${{ github.ref_name != 'prod' && 'http://localhost:5173/**' || '' }}
           SMTP_USER: ${{ vars.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
         run: node scripts/supabase-auth-config.mjs
 
-      # TODO(D-14): on prod, take an age-encrypted pg_dump here before migrating (Q-06).
+      # D-14: an encrypted snapshot right before prod migrations, kept 30 days (restore: scripts/db-restore.sh).
+      - name: Pre-migration backup (prod)
+        if: github.ref_name == 'prod'
+        env:
+          DB_HOST: aws-0-ap-southeast-1.pooler.supabase.com
+          DB_PORT: '5432'
+          DB_USER: postgres.${{ vars.SUPABASE_PROJECT_REF }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: scripts/db-backup.sh "prod-predeploy-${GITHUB_SHA::7}.dump.age"
+
+      - if: github.ref_name == 'prod'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: prod-predeploy-${{ github.run_id }}
+          path: prod-predeploy-*.dump.age
+          retention-days: 30
+          if-no-files-found: error
+
       - name: Database migrations
         run: |
           if ls supabase/migrations/*.sql >/dev/null 2>&1; then

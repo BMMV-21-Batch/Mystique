@@ -1921,6 +1921,8 @@ These need answers, ideally by **Fri 30 Oct noon**. Defaults in brackets are wha
 
 ## Appendix A: Error codes
 
+> **Superseded by [`docs/interfaces.md`](interfaces.md) §7**, which adds `UPLOAD_LIMIT` and `PAYLOAD_TOO_LARGE`. Use that table.
+
 Server → client codes. The client maps `errors.<CODE>` to localized text. HTTP status shown for the Edge Functions.
 
 | Code | HTTP | Meaning | User-facing action |

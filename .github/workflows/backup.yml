@@ -1,0 +1,45 @@
+# D-14: nightly encrypted backup of prod (spec §16.4, SD-9).
+# The dump is age-encrypted before upload (scripts/backup-recipients.txt): the repo is public,
+# so anyone signed in to GitHub can download artifacts. Restore: scripts/db-restore.sh.
+#
+# Runs in the `prod-backup` environment: prod DB password, NO approval (a schedule can't wait),
+# and only the default branch (`staging`) may use it, so the workflow that runs is reviewed code.
+name: Backup
+
+on:
+  schedule:
+    - cron: '30 20 * * *' # 02:00 Asia/Colombo
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Encrypted prod backup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: prod-backup
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Dump and encrypt
+        env:
+          DB_HOST: aws-0-ap-southeast-1.pooler.supabase.com
+          DB_PORT: '5432'
+          DB_USER: postgres.${{ vars.SUPABASE_PROJECT_REF }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: scripts/db-backup.sh "prod-$(date -u +%Y%m%dT%H%MZ).dump.age"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: prod-backup-${{ github.run_id }}
+          path: prod-*.dump.age
+          retention-days: 7
+          if-no-files-found: error
