@@ -87,8 +87,8 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] A-04 Migration 003 helpers + TRUNCATE guard: QR secret generated in-DB; pgTAP `003_foundation` 24/24, incl. T12 UPDATE/DELETE/TRUNCATE (verified)
 - [x] Staging: 001–003 applied by the deploy after merge; pg_cron accepted without a dashboard step (verified)
 - [x] A-05 Migration 004 user functions + `set_my_locale` (SD-11), constraint errors → `VALIDATION` and payment ref ≥ 4 chars (SD-14), `ACCOUNT_SUSPENDED` on every write (SD-5); not API-callable until 006 (anon gets 401); pgTAP `004_user_functions` 41/41 (verified)
-- [ ] A-06 Migration 005 admin/dev functions
-- [ ] A-07 Migration 006 RLS/grants
+- [x] A-06 Migration 005 admin/dev functions: reject-and-release (SD-1), `admin_set_status` (SD-5), `admin_users_v` fix (SD-10), manifest VOLATILE (SD-12), strict UUID (SD-13), `holder_names` (SD-17), config fields + null clears URL + first-setup insert (SD-19), top uploaders in health (SD-2); pgTAP `005_admin_dev_functions` 71/71, 136 total (verified)
+- [ ] A-07 Migration 006 RLS/grants (note: grants must use the new `reject_order(uuid,text,text,boolean)` and add `admin_set_status`, `set_my_locale`)
 - [ ] A-08 Migration 007 storage (10 uploads/day)
 - [ ] A-09 Migration 008 cron
 - [ ] A-10 seed.sql
