@@ -22,12 +22,14 @@ Create a new file with `pnpm exec supabase migration new <name>`, then rename it
 ### Per-environment setup (once, never committed)
 
 - **QR signing secret:** created automatically by `003` inside each database. Never change it: that invalidates every issued QR.
-- **Cron → `send-notifications`:** in the SQL editor of each project, run
-  ```sql
-  select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/send-notifications', 'notify_url');
-  select vault.create_secret('<same value as the CRON_SECRET Edge Function secret>', 'cron_secret');
+- **Cron → `send-notifications`:** set a `CRON_SECRET` GitHub secret in each environment, once:
+  ```bash
+  openssl rand -hex 32 | gh secret set CRON_SECRET --env staging     # and again (new value) --env production
   ```
-  Until both exist, the outbox drain job does nothing (no errors).
+  Every deploy then writes the Vault entries `notify_url` + `cron_secret` (`scripts/supabase-vault-config.mjs`)
+  and gives the same value to the Edge Functions, so they always match. Don't create them by hand in the
+  dashboard (the comment in `008` predates this); to rotate, set a new GitHub secret and redeploy.
+  Until it is set, the outbox drain job does nothing (no errors) and emails wait in the outbox.
 
 ## functions/
 
