@@ -1,0 +1,114 @@
+# CI: runs on every push and PR, and is reused by deploy.yml before any deploy (D-03).
+# Each job skips the parts that don't exist yet (no migrations, tests or web app on day 1).
+name: CI
+
+on:
+  push:
+    branches-ignore: [staging, prod] # those run CI via deploy.yml
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    name: Secrets & dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # scan the full history, not just the last commit
+          persist-credentials: false
+
+      - name: Gitleaks (full history)
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -sSfL -o gitleaks.tgz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum -c -
+          tar -xzf gitleaks.tgz gitleaks
+          ./gitleaks git --redact --no-banner .
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: corepack enable && pnpm install --frozen-lockfile
+      - name: Dependency audit (fails on high/critical)
+        run: pnpm audit --audit-level high
+
+  db:
+    name: Database (migrations + pgTAP)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: corepack enable && pnpm install --frozen-lockfile
+
+      - name: Start Supabase (Postgres, Auth, Storage, REST only)
+        run: pnpm exec supabase start -x studio,imgproxy,realtime,edge-runtime,logflare,vector,mailpit,supavisor
+
+      - name: Apply every migration + seed from scratch
+        run: pnpm exec supabase db reset
+
+      - name: pgTAP tests
+        run: |
+          if find supabase/tests -name '*.sql' -not -path '*/concurrency/*' | grep -q .; then
+            pnpm exec supabase test db
+          else
+            echo "::notice::No pgTAP tests yet (A-11..A-14)"
+          fi
+
+      - name: Concurrency tests (T1, T2, T3, T7)
+        run: |
+          if [ -x supabase/tests/concurrency/run.sh ]; then
+            supabase/tests/concurrency/run.sh
+          else
+            echo "::notice::No concurrency tests yet (A-15)"
+          fi
+
+      - name: Stop Supabase
+        if: always()
+        run: pnpm exec supabase stop --no-backup
+
+  web:
+    name: Web (typecheck, lint, i18n, build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: has
+        run: echo "web=$([ -f web/package.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - if: steps.has.outputs.web == 'false'
+        run: echo "::notice::No web app yet (B-01)"
+
+      - if: steps.has.outputs.web == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - if: steps.has.outputs.web == 'true'
+        run: corepack enable && pnpm install --frozen-lockfile
+      - if: steps.has.outputs.web == 'true'
+        name: Typecheck, lint, i18n check
+        run: |
+          pnpm --dir web run --if-present typecheck
+          pnpm --dir web run --if-present lint
+          pnpm --dir web run --if-present i18n:check
+      - if: steps.has.outputs.web == 'true'
+        name: Build (local placeholder config, nothing secret)
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_ANON_KEY: ci-placeholder
+          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA # Cloudflare's always-pass test key
+          VITE_APP_RELEASE: ${{ github.sha }}
+        run: pnpm --dir web run build

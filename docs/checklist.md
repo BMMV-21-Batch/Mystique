@@ -23,14 +23,15 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] Prod API token, *Cloudflare Pages: Edit* only; rolled after exposure in chat (verified)
 - [x] Prod Turnstile widget, hostname `mystique-26.pages.dev` only (secret verified)
 - [x] Prod preview deployments restricted (confirmed)
-- [ ] `.env.staging`: clear the **prod** Cloudflare values, add the staging account ID, token and project
-- [ ] Staging Turnstile widget (`mystique-staging.pages.dev` + `localhost`)
+- [x] Staging Cloudflare account (`9881…`), token reads `mystique-staging` → `mystique-staging.pages.dev` (verified)
+- [x] Staging Turnstile widget; secret valid (verified)
 - [ ] Staging preview deployments restricted, the other devs' emails allowed
 - [ ] 2FA on both Cloudflare accounts
 
 ### Mail (Gmail SMTP; replaces the domain plan in X-02/D-02)
 - [x] Dedicated prod sender `mystique26.tickets@gmail.com`, App Password, login OK on ports 465 and 587 (verified, nothing sent)
-- [ ] Staging App Password (`dewminathedeveloper@gmail.com`) in `.env.staging`
+- [x] Staging SMTP login OK (verified). **Note:** it uses the prod sender *and* prod App Password, so it shares the ~500/day limit and gets revoked together with prod
+- [ ] Staging gets its own sender (`dewminathedeveloper@gmail.com`) or at least its own App Password
 - [ ] Test email sent; lands in the inbox, not spam
 - [ ] Edge Function → `smtp.gmail.com:465` reachability test (decides Gmail vs Brevo API for order emails)
 
@@ -43,9 +44,14 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] Environment `production`: deploys only from `prod`, your approval required (verified)
 - [x] Environment `staging`: deploys only from `staging` (verified)
 - [x] Prod secrets (5) and variables (6) loaded into `production` (verified)
-- [ ] Staging secrets and variables loaded into `staging` (after `.env.staging` is fixed)
+- [x] Staging secrets (5) and variables (6) loaded into `staging` (verified)
 - [x] Branch protection: `prod` PR + 1 approval; `staging` PR; `main` no force-push or delete; admins can bypass (verified)
-- [ ] Required status checks on `prod` / `staging` (once CI exists, D-03)
+- [x] Third-party actions pinned to commit SHAs; gitleaks binary checksum-verified (verified)
+- [x] `undici` patched to 7.30.1 via override (8 advisories in wrangler's deps); `pnpm audit` clean (verified)
+- [ ] First CI run green on GitHub
+- [ ] Staging smoke deploy (checks staging secrets work in CI)
+- [ ] Prod smoke deploy with approval (first test of the prod DB password)
+- [ ] Required status checks on `prod` / `staging` (after the first run, so the check names exist)
 - [x] Sole approver for prod: `production` environment reviewer = `dewminawijekoon`; `prod` requires code-owner review (verified)
 - [ ] `.github/CODEOWNERS` committed and merged into `prod` (code-owner review only takes effect once the file is on `prod`)
 - [ ] Add the other 3 devs as collaborators (write access) when they're ready
@@ -54,7 +60,7 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] pnpm, Supabase CLI 2.121.0, wrangler 4.151.0 pinned; 14-day release-age guard (verified)
 - [x] `supabase init` + `config.toml` (OTP, MFA, 2 MiB uploads)
 - [x] Folder structure + READMEs (spec §3.3)
-- [ ] `supabase start` runs locally
+- [x] `supabase start` runs locally: full stack, 12 containers healthy; Auth, Studio and the email inbox respond (verified)
 
 ### Decisions recorded
 - [x] Region: Singapore (51 ms vs Mumbai 94 ms from Colombo)
@@ -73,7 +79,7 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [ ] X-05 Spec defects triaged
 
 ### Stream A: Data & logic
-- [ ] A-01 Local stack (init done; `supabase start` pending)
+- [x] A-01 Local stack: init + full `supabase start` (verified)
 - [ ] A-02 Migration 001 extensions/types
 - [ ] A-03 Migration 002 tables
 - [ ] A-04 Migration 003 helpers + TRUNCATE guard
@@ -121,7 +127,7 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 ### Stream D: Platform, i18n, notifications
 - [ ] D-01 Platform setup (in progress: see §1)
 - [ ] D-02 Auth + mail (in progress: see §1)
-- [ ] D-03 CI pipeline
+- [ ] D-03 CI pipeline (in progress: `ci.yml` + `deploy.yml` written; actionlint, gitleaks, audit and db reset pass locally. Pending: first GitHub run, staging/prod smoke deploys, required status checks)
 - [ ] D-04 i18n framework
 - [ ] D-05 Sinhala font subset
 - [ ] D-06 Formatters + Zod schemas
