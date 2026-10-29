@@ -1928,6 +1928,7 @@ Server → client codes. The client maps `errors.<CODE>` to localized text. HTTP
 | `UNAUTHENTICATED` | 401 | No/expired session | Sign in again |
 | `FORBIDDEN` | 403 | Role/MFA missing | Admin: complete MFA |
 | `NOT_FOUND` | 404 | Entity missing or not yours | |
+| `ACCOUNT_SUSPENDED` | 403 | Account suspended by an admin (SD-5) | Contact organisers |
 | `VALIDATION` | 400 | Bad input | Fix the highlighted field |
 | `PROFILE_INCOMPLETE` | 409 | Name/phone missing | Complete profile |
 | `PHONE_TAKEN` | 409 | Phone already registered | Use another number or sign in to the right account |
