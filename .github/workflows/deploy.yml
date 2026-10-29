@@ -1,0 +1,104 @@
+# Deploy: `staging` branch -> staging, `prod` branch -> production (D-03).
+# CI runs first. The `production` environment waits for the release lead's approval
+# and only accepts the `prod` branch; `staging` only accepts the `staging` branch.
+name: Deploy
+
+on:
+  push:
+    branches: [staging, prod]
+  workflow_dispatch: # re-run a deploy; environment branch rules still apply
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false # never cut a deploy (or a migration) off halfway
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy to ${{ github.ref_name == 'prod' && 'production' || 'staging' }}
+    needs: ci
+    if: github.ref_name == 'staging' || github.ref_name == 'prod'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: ${{ github.ref_name == 'prod' && 'production' || 'staging' }}
+      url: ${{ github.ref_name == 'prod' && 'https://mystique-26.pages.dev' || 'https://mystique-staging.pages.dev' }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: corepack enable && pnpm install --frozen-lockfile
+
+      - name: Link Supabase project
+        run: pnpm exec supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      # TODO(D-14): on prod, take an age-encrypted pg_dump here before migrating (Q-06).
+      - name: Database migrations
+        run: |
+          if ls supabase/migrations/*.sql >/dev/null 2>&1; then
+            pnpm exec supabase migration list
+            pnpm exec supabase db push
+          else
+            echo "::notice::No migrations yet"
+          fi
+
+      - name: Edge Function secrets + deploy
+        env:
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          SMTP_USER: ${{ vars.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: |
+          if ! find supabase/functions -mindepth 2 -maxdepth 2 -name index.ts -not -path '*/_shared/*' | grep -q .; then
+            echo "::notice::No Edge Functions yet"; exit 0
+          fi
+          f="$RUNNER_TEMP/functions.env"
+          umask 077
+          {
+            printf 'TURNSTILE_SECRET_KEY=%s\n' "$TURNSTILE_SECRET_KEY"
+            printf 'SMTP_USER=%s\n' "$SMTP_USER"
+            printf 'SMTP_PASS=%s\n' "$SMTP_PASS"
+          } > "$f"
+          pnpm exec supabase secrets set --env-file "$f"
+          rm -f "$f"
+          pnpm exec supabase functions deploy
+
+      - name: Build web
+        id: web
+        env:
+          VITE_SUPABASE_URL: https://${{ vars.SUPABASE_PROJECT_REF }}.supabase.co
+          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+          VITE_APP_RELEASE: ${{ github.sha }}
+        run: |
+          if [ ! -f web/package.json ]; then
+            echo "::notice::No web app yet (B-01)"; echo "built=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          pnpm --dir web run build
+          echo "built=true" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to Cloudflare Pages
+        if: steps.web.outputs.built == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        # --branch main = the Pages project's production branch, so this is a production
+        # deployment of that project (not a public preview URL).
+        run: >-
+          pnpm exec wrangler pages deploy web/dist
+          --project-name "$CLOUDFLARE_PAGES_PROJECT"
+          --branch main
+          --commit-hash "$GITHUB_SHA"
+          --commit-message "${GITHUB_REF_NAME} ${GITHUB_SHA::7}"
