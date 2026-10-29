@@ -1,6 +1,8 @@
 # Deploy: `staging` branch -> staging, `prod` branch -> production (D-03).
-# CI runs first. The `production` environment waits for the release lead's approval
-# and only accepts the `prod` branch; `staging` only accepts the `staging` branch.
+# No CI here: code reaches `staging` only through a PR whose CI passed (required check,
+# branch must be up to date), and reaches `prod` only from `staging`.
+# The `production` environment waits for the release lead's approval and only accepts
+# the `prod` branch; `staging` only accepts the `staging` branch.
 name: Deploy
 
 on:
@@ -16,12 +18,8 @@ concurrency:
   cancel-in-progress: false # never cut a deploy (or a migration) off halfway
 
 jobs:
-  ci:
-    uses: ./.github/workflows/ci.yml
-
   deploy:
     name: Deploy to ${{ github.ref_name == 'prod' && 'production' || 'staging' }}
-    needs: ci
     if: github.ref_name == 'staging' || github.ref_name == 'prod'
     runs-on: ubuntu-24.04
     timeout-minutes: 20

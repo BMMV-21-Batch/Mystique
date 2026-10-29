@@ -1,12 +1,13 @@
-# CI: runs on every push and PR, and is reused by deploy.yml before any deploy (D-03).
+# CI: the single quality gate, run on PRs into `staging` (D-03).
+# Flow: feature -> PR into staging (CI, required + up to date) -> merge deploys staging
+#       -> PR staging -> prod (no CI: same code already passed) -> merge deploys prod.
 # Each job skips the parts that don't exist yet (no migrations, tests or web app on day 1).
 name: CI
 
 on:
-  push:
-    branches-ignore: [staging, prod] # those run CI via deploy.yml
   pull_request:
-  workflow_call:
+    branches: [staging]
+  workflow_dispatch: # manual run on any branch
 
 permissions:
   contents: read

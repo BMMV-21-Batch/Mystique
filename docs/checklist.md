@@ -48,10 +48,12 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] Branch protection: `prod` PR + 1 approval; `staging` PR; `main` no force-push or delete; admins can bypass (verified)
 - [x] Third-party actions pinned to commit SHAs; gitleaks binary checksum-verified (verified)
 - [x] `undici` patched to 7.30.1 via override (8 advisories in wrangler's deps); `pnpm audit` clean (verified)
-- [ ] First CI run green on GitHub
-- [ ] Staging smoke deploy (checks staging secrets work in CI)
+- [x] First CI run green on GitHub (runs 40880729184, 40881235247; verified)
+- [x] Staging smoke deploy green: CI linked `mystique-staging` with the staging secrets (run 40881497786; verified)
 - [ ] Prod smoke deploy with approval (first test of the prod DB password)
-- [ ] Required status checks on `prod` / `staging` (after the first run, so the check names exist)
+- [x] Flow (decided 29 Oct): feature → PR into `staging` (CI) → merge deploys staging → PR `staging` → `prod` (no CI) → merge + approval deploys prod. `main` is unused
+- [x] `staging` requires the 3 CI checks, and the branch must be up to date before merging (verified)
+- [x] Default branch is `staging`, so new PRs and clones start from staging (verified)
 - [x] Sole approver for prod: `production` environment reviewer = `dewminawijekoon`; `prod` requires code-owner review (verified)
 - [ ] `.github/CODEOWNERS` committed and merged into `prod` (code-owner review only takes effect once the file is on `prod`)
 - [ ] Add the other 3 devs as collaborators (write access) when they're ready
