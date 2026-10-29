@@ -1,0 +1,2 @@
+-- Local / staging seed data only. NEVER applied to prod.
+-- Filled by task A-10: event_config row, one test user per role, local QR secret.

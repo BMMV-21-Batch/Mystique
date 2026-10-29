@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+
+# Supabase CLI local state
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# Cloudflare
+.wrangler/
+
+*.log
+.DS_Store
