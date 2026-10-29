@@ -85,8 +85,8 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] A-02 Migration 001 extensions/types: `db reset` applies it (verified)
 - [x] A-03 Migration 002 tables: RLS on + API grants revoked on every table until 006; anon gets 401 on every table (verified)
 - [x] A-04 Migration 003 helpers + TRUNCATE guard: QR secret generated in-DB; pgTAP `003_foundation` 24/24, incl. T12 UPDATE/DELETE/TRUNCATE (verified)
-- [ ] Staging: 001–003 applied by the deploy after merge
-- [ ] A-05 Migration 004 user functions
+- [x] Staging: 001–003 applied by the deploy after merge; pg_cron accepted without a dashboard step (verified)
+- [x] A-05 Migration 004 user functions + `set_my_locale` (SD-11), constraint errors → `VALIDATION` and payment ref ≥ 4 chars (SD-14), `ACCOUNT_SUSPENDED` on every write (SD-5); not API-callable until 006 (anon gets 401); pgTAP `004_user_functions` 41/41 (verified)
 - [ ] A-06 Migration 005 admin/dev functions
 - [ ] A-07 Migration 006 RLS/grants
 - [ ] A-08 Migration 007 storage (10 uploads/day)
