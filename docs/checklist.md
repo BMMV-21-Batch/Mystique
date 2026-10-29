@@ -84,9 +84,10 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 
 ### Stream A: Data & logic
 - [x] A-01 Local stack: init + full `supabase start` (verified)
-- [ ] A-02 Migration 001 extensions/types
-- [ ] A-03 Migration 002 tables
-- [ ] A-04 Migration 003 helpers + TRUNCATE guard
+- [x] A-02 Migration 001 extensions/types: `db reset` applies it (verified)
+- [x] A-03 Migration 002 tables: RLS on + API grants revoked on every table until 006; anon gets 401 on every table (verified)
+- [x] A-04 Migration 003 helpers + TRUNCATE guard: QR secret generated in-DB; pgTAP `003_foundation` 24/24, incl. T12 UPDATE/DELETE/TRUNCATE (verified)
+- [ ] Staging: 001–003 applied by the deploy after merge
 - [ ] A-05 Migration 004 user functions
 - [ ] A-06 Migration 005 admin/dev functions
 - [ ] A-07 Migration 006 RLS/grants
