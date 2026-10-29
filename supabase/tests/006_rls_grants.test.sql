@@ -4,6 +4,14 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(30);
 
+-- Start from empty tables whatever the seed loaded (rolled back at the end with everything else).
+-- replica mode skips triggers, incl. the audit guards, for these deletes only.
+set local session_replication_role = replica;
+delete from public.scan_log; delete from public.notification_outbox; delete from public.tickets; delete from public.orders;
+delete from public.audit_log; delete from public.event_config; delete from public.profiles; delete from auth.users;
+delete from storage.objects where bucket_id = 'receipts';
+set local session_replication_role = origin;
+
 -- A-16: grants and function hygiene ----------------------------------------------
 select is((select array_agg(distinct routine_name::text) from information_schema.routine_privileges
            where routine_schema = 'public' and grantee in ('anon', 'PUBLIC')),

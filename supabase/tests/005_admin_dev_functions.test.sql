@@ -4,6 +4,14 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(70);
 
+-- Start from empty tables whatever the seed loaded (rolled back at the end with everything else).
+-- replica mode skips triggers, incl. the audit guards, for these deletes only.
+set local session_replication_role = replica;
+delete from public.scan_log; delete from public.notification_outbox; delete from public.tickets; delete from public.orders;
+delete from public.audit_log; delete from public.event_config; delete from public.profiles; delete from auth.users;
+delete from storage.objects where bucket_id = 'receipts';
+set local session_replication_role = origin;
+
 -- Fixtures ---------------------------------------------------------------------
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000c01', 'b1@example.com'),
