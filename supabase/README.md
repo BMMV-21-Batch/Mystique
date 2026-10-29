@@ -19,6 +19,16 @@ Applied in filename order. Spec §6 has the reference SQL. **Apply the spec-defe
 
 Create a new file with `pnpm exec supabase migration new <name>`, then rename it to follow the numbering. Never edit a migration that has already been applied to staging; add a new one instead.
 
+### Per-environment setup (once, never committed)
+
+- **QR signing secret:** created automatically by `003` inside each database. Never change it: that invalidates every issued QR.
+- **Cron → `send-notifications`:** in the SQL editor of each project, run
+  ```sql
+  select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/send-notifications', 'notify_url');
+  select vault.create_secret('<same value as the CRON_SECRET Edge Function secret>', 'cron_secret');
+  ```
+  Until both exist, the outbox drain job does nothing (no errors).
+
 ## functions/
 
 Deno Edge Functions. Shared code goes in `_shared/` (auth, CORS allowlist, Zod, error codes, logging, mail templates in `mail/`, email strings in `i18n/`).
