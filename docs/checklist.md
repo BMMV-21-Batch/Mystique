@@ -35,12 +35,20 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [ ] Edge Function → `smtp.gmail.com:465` reachability test (decides Gmail vs Brevo API for order emails)
 
 ### GitHub
-- [x] Repo `BMMV-21-Batch/Mystique` is private (verified)
-- [ ] Initial structure committed and pushed to `main`
-- [ ] Branches `staging` and `prod` created from `main`
-- [ ] Environments `staging` and `production` (prod requires approval)
-- [ ] Secrets loaded from `.env.*` into the environments
-- [ ] Branch protection on `main` / `prod` (CI required, 1 review)
+- [x] Repo `BMMV-21-Batch/Mystique` made **public** (free plan has no protection for private repos). History scanned: no secrets ever committed (verified)
+- [x] Secret scanning + push protection, Dependabot alerts on (verified)
+- [x] Actions: workflow token read-only by default; fork-PR workflows need approval for all outside contributors (verified)
+- [x] Initial structure committed and pushed to `main` (`00e7701`, no `.env` files in the tree; verified)
+- [x] Branches `staging` and `prod` created from `main` and pushed (both at `00e7701`; verified)
+- [x] Environment `production`: deploys only from `prod`, your approval required (verified)
+- [x] Environment `staging`: deploys only from `staging` (verified)
+- [x] Prod secrets (5) and variables (6) loaded into `production` (verified)
+- [ ] Staging secrets and variables loaded into `staging` (after `.env.staging` is fixed)
+- [x] Branch protection: `prod` PR + 1 approval; `staging` PR; `main` no force-push or delete; admins can bypass (verified)
+- [ ] Required status checks on `prod` / `staging` (once CI exists, D-03)
+- [x] Sole approver for prod: `production` environment reviewer = `dewminawijekoon`; `prod` requires code-owner review (verified)
+- [ ] `.github/CODEOWNERS` committed and merged into `prod` (code-owner review only takes effect once the file is on `prod`)
+- [ ] Add the other 3 devs as collaborators (write access) when they're ready
 
 ### Local tooling (A-01)
 - [x] pnpm, Supabase CLI 2.121.0, wrangler 4.151.0 pinned; 14-day release-age guard (verified)
