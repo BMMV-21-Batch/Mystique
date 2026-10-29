@@ -94,7 +94,9 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] A-16 security queries in pgTAP (only `get_public_event` for anon, RLS everywhere, `search_path=''` on every SECURITY DEFINER) (verified)
 - [x] A-08 Migration 007 storage: private 2 MB bucket; own folder only, strict `<uid>/<uuid>.<ext>` name (SD-4), active accounts only, 10 uploads per rolling 24 h (SD-2); no update/delete; `my_upload_quota()` for the client. Live Storage API: 11th upload 400, other folder 400, delete removes nothing (verified)
 - [x] A-09 Migration 008 cron: 3 jobs; notify URL + secret from Vault (SD-15), no-op until both exist (verified locally)
-- [ ] Vault secrets `notify_url` + `cron_secret` set on staging and prod (with the D-09 `CRON_SECRET` Edge secret); then `/dev/health` shows all 3 jobs succeeding
+- [x] Vault secrets automated: every deploy upserts `notify_url` + `cron_secret` from the `CRON_SECRET` GitHub secret and passes the same value to the Edge Functions (`scripts/supabase-vault-config.mjs`; upsert logic tested locally: created / unchanged / updated) (verified)
+- [ ] `CRON_SECRET` GitHub secret set in `staging` and `production` (yours: `openssl rand -hex 32 | gh secret set CRON_SECRET --env …`)
+- [ ] First deploy after that logs "Vault verified" on staging and prod; once D-09 exists, `/dev/health` shows all 3 cron jobs succeeding
 - [x] A-10 seed.sql: config, 6 users (user, buyer2, new, admin A001, admin2 A002, dev D001 @mystique.local), 3 orders (submitted/approved/rejected) via the real functions; local OTP login works end to end with the bilingual template (verified)
 - [x] Local Auth uses the same sign-in code template as staging/prod (`config.toml`) (verified)
 - [ ] A-11 pgTAP role helpers: impersonation is per-file (`pg_temp.as_user`), not a shared helper; every file starts from empty tables so tests don't depend on the seed

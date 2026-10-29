@@ -60,11 +60,22 @@ jobs:
             echo "::notice::No migrations yet"
           fi
 
+      # The cron job (008) reads these; the same CRON_SECRET goes to the Edge Functions below.
+      - name: Vault secrets for the notifications cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::warning::CRON_SECRET is not set for this environment; emails will queue but not send"; exit 0
+          fi
+          node scripts/supabase-vault-config.mjs
+
       - name: Edge Function secrets + deploy
         env:
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           SMTP_USER: ${{ vars.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           if ! find supabase/functions -mindepth 2 -maxdepth 2 -name index.ts -not -path '*/_shared/*' | grep -q .; then
             echo "::notice::No Edge Functions yet"; exit 0
@@ -75,6 +86,7 @@ jobs:
             printf 'TURNSTILE_SECRET_KEY=%s\n' "$TURNSTILE_SECRET_KEY"
             printf 'SMTP_USER=%s\n' "$SMTP_USER"
             printf 'SMTP_PASS=%s\n' "$SMTP_PASS"
+            printf 'CRON_SECRET=%s\n' "$CRON_SECRET"
           } > "$f"
           pnpm exec supabase secrets set --env-file "$f"
           rm -f "$f"
