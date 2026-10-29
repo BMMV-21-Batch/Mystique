@@ -10,12 +10,13 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] Staging project `mystique-staging` (`pdiwvazaqwtjmkrhilbn`), Singapore, healthy (verified)
 - [x] Access tokens work; each account sees only its own project (verified, both)
 - [x] Staging DB password works; CLI linked to **staging only** (verified)
-- [ ] Prod DB password tested (on the first CI deploy)
+- [x] Prod DB password works: read-only `migration list` against `mystique-prod`, 0 migrations (verified)
 - [ ] Org MFA enabled on both Supabase accounts
-- [ ] Auth URLs: site URL + redirect allowlist (staging, prod)
-- [ ] Auth SMTP pointed at Gmail (staging, prod)
-- [ ] Auth hardening pushed: 10-min OTP, TOTP MFA, rate limits (staging, prod)
-- [ ] Auth CAPTCHA (Turnstile) switched on, only after the login page works on staging
+- [x] Staging Auth (as code, `scripts/supabase-auth-config.mjs`): site URL + redirects, Gmail SMTP on 465, 6-digit OTP / 10 min, TOTP on, 150 emails/h, bilingual code email; read back and verified
+- [ ] Prod Auth: applied by the next approved prod deploy (step added to `deploy.yml`)
+- [x] Real sign-in code email received from staging at `dewmandula@gmail.com`, rendering OK (confirmed). CAPTCHA was off for ~5 s and is back on (verified)
+- [ ] Design pass on the sign-in code email (later)
+- [x] Auth CAPTCHA (Turnstile) **on** in staging and prod; keep it on, and toggle off only briefly for one-off backend tests (verified)
 
 ### Cloudflare
 - [x] Prod Pages project `mystique-26` → https://mystique-26.pages.dev (verified via API)
@@ -32,7 +33,7 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] Dedicated prod sender `mystique26.tickets@gmail.com`, App Password, login OK on ports 465 and 587 (verified, nothing sent)
 - [x] Staging SMTP login OK (verified). **Note:** it uses the prod sender *and* prod App Password, so it shares the ~500/day limit and gets revoked together with prod
 - [ ] Staging gets its own sender (`dewminathedeveloper@gmail.com`) or at least its own App Password
-- [ ] Test email sent; lands in the inbox, not spam
+- [x] Test email (staging sign-in code) delivered and rendering OK (confirmed)
 - [ ] Edge Function → `smtp.gmail.com:465` reachability test (decides Gmail vs Brevo API for order emails)
 
 ### GitHub
@@ -50,7 +51,8 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] `undici` patched to 7.30.1 via override (8 advisories in wrangler's deps); `pnpm audit` clean (verified)
 - [x] First CI run green on GitHub (runs 40880729184, 40881235247; verified)
 - [x] Staging smoke deploy green: CI linked `mystique-staging` with the staging secrets (run 40881497786; verified)
-- [ ] Prod smoke deploy with approval (first test of the prod DB password)
+- [x] Prod smoke deploy: approval gate held the run, approved by `dewminawijekoon`, deploy linked `mystique-prod` (run 40882379218; verified)
+- [ ] Accidental direct push `327cff0` to `staging` deployed without CI; CI re-run on staging (run 40884061658) pending result
 - [x] Flow (decided 29 Oct): feature → PR into `staging` (CI) → merge deploys staging → PR `staging` → `prod` (no CI) → merge + approval deploys prod. `main` is unused
 - [x] `staging` requires the 3 CI checks, and the branch must be up to date before merging (verified)
 - [x] Default branch is `staging`, so new PRs and clones start from staging (verified)
@@ -133,7 +135,7 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [ ] D-04 i18n framework
 - [ ] D-05 Sinhala font subset
 - [ ] D-06 Formatters + Zod schemas
-- [ ] D-07 Bilingual OTP template
+- [ ] D-07 Bilingual OTP template (in progress: `supabase/templates/otp-code.html` live on staging; Sinhala needs review, D-15)
 - [ ] D-08 Mail templates
 - [ ] D-09 `send-notifications`
 - [ ] D-10 `health` + UptimeRobot
