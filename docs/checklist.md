@@ -95,13 +95,14 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] A-08 Migration 007 storage: private 2 MB bucket; own folder only, strict `<uid>/<uuid>.<ext>` name (SD-4), active accounts only, 10 uploads per rolling 24 h (SD-2); no update/delete; `my_upload_quota()` for the client. Live Storage API: 11th upload 400, other folder 400, delete removes nothing (verified)
 - [x] A-09 Migration 008 cron: 3 jobs; notify URL + secret from Vault (SD-15), no-op until both exist (verified locally)
 - [ ] Vault secrets `notify_url` + `cron_secret` set on staging and prod (with the D-09 `CRON_SECRET` Edge secret); then `/dev/health` shows all 3 jobs succeeding
-- [ ] A-10 seed.sql
-- [ ] A-11 pgTAP role helpers
-- [ ] A-12 pgTAP T4–T6, T8–T10, T12
-- [ ] A-13 T11 RLS matrix
-- [ ] A-14 T13 audit
-- [ ] A-15 Concurrency T1/T2/T3/T7
-- [ ] A-17 SD-1/2/5 tests
+- [x] A-10 seed.sql: config, 6 users (user, buyer2, new, admin A001, admin2 A002, dev D001 @mystique.local), 3 orders (submitted/approved/rejected) via the real functions; local OTP login works end to end with the bilingual template (verified)
+- [x] Local Auth uses the same sign-in code template as staging/prod (`config.toml`) (verified)
+- [ ] A-11 pgTAP role helpers: impersonation is per-file (`pg_temp.as_user`), not a shared helper; every file starts from empty tables so tests don't depend on the seed
+- [x] A-12 pgTAP T4–T6, T8–T10, T12 + rate limit + SD-10/11/14/19 (`004`, `005`, `003`, `012_spec_cases`); 195 tests green (verified)
+- [ ] A-13 T11 RLS matrix: partial (`006` tables/views × 6 roles, `007` storage paths); still to add: every function × role
+- [ ] A-14 T13 audit: partial (create, approve, reject/release, suspend, manifest, admin request); still to add: every function in the catalogue
+- [x] A-15 Concurrency T1/T2/T3/T7 (`tests/concurrency/run.sh`, parallel connections, local-only guard, cleans up): 10/10 checks (verified)
+- [x] A-17 SD-1/2/5 tests (`005` release + suspension rules, `007` 11th upload denied + window, `004` suspended writes) (verified)
 
 ### Stream B: User flow
 - [ ] B-01 Web scaffold
