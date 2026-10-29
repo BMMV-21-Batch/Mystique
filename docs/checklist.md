@@ -99,8 +99,8 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] Local Auth uses the same sign-in code template as staging/prod (`config.toml`) (verified)
 - [ ] A-11 pgTAP role helpers: impersonation is per-file (`pg_temp.as_user`), not a shared helper; every file starts from empty tables so tests don't depend on the seed
 - [x] A-12 pgTAP T4–T6, T8–T10, T12 + rate limit + SD-10/11/14/19 (`004`, `005`, `003`, `012_spec_cases`); 195 tests green (verified)
-- [ ] A-13 T11 RLS matrix: partial (`006` tables/views × 6 roles, `007` storage paths); still to add: every function × role
-- [ ] A-14 T13 audit: partial (create, approve, reject/release, suspend, manifest, admin request); still to add: every function in the catalogue
+- [x] A-13 T11 RLS matrix: tables/views × roles (`006`), storage paths (`007`), all 26 functions × 6 roles (`013_function_matrix`), and a completeness check that fails if a new function isn't in the matrix (verified)
+- [x] A-14 T13 audit: one flow through every state-changing function → the exact 18-row trail, with actor, role, old → new state, request id and client IP (`014_audit_trail`); 232 tests green (verified)
 - [x] A-15 Concurrency T1/T2/T3/T7 (`tests/concurrency/run.sh`, parallel connections, local-only guard, cleans up): 10/10 checks (verified)
 - [x] A-17 SD-1/2/5 tests (`005` release + suspension rules, `007` 11th upload denied + window, `004` suspended writes) (verified)
 
