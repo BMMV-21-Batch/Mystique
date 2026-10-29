@@ -19,6 +19,18 @@ Applied in filename order. Spec §6 has the reference SQL. **Apply the spec-defe
 
 Create a new file with `pnpm exec supabase migration new <name>`, then rename it to follow the numbering. Never edit a migration that has already been applied to staging; add a new one instead.
 
+### Per-environment setup (once, never committed)
+
+- **QR signing secret:** created automatically by `003` inside each database. Never change it: that invalidates every issued QR.
+- **Cron → `send-notifications`:** set a `CRON_SECRET` GitHub secret in each environment, once:
+  ```bash
+  openssl rand -hex 32 | gh secret set CRON_SECRET --env staging     # and again (new value) --env production
+  ```
+  Every deploy then writes the Vault entries `notify_url` + `cron_secret` (`scripts/supabase-vault-config.mjs`)
+  and gives the same value to the Edge Functions, so they always match. Don't create them by hand in the
+  dashboard (the comment in `008` predates this); to rotate, set a new GitHub secret and redeploy.
+  Until it is set, the outbox drain job does nothing (no errors) and emails wait in the outbox.
+
 ## functions/
 
 Deno Edge Functions. Shared code goes in `_shared/` (auth, CORS allowlist, Zod, error codes, logging, mail templates in `mail/`, email strings in `i18n/`).

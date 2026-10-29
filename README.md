@@ -42,6 +42,16 @@ pnpm db:test       # pgTAP tests
 
 Credentials live in `.env.staging` / `.env.prod`. Copy `.env.example`; the real files are gitignored. Never paste secrets into chat, issues or commits.
 
+## Branches and deploys
+
+1. Branch from `staging` (`feat/A-05-user-functions`), then open a PR **into `staging`**.
+2. CI runs (secrets & dependencies, database + pgTAP, web). The PR merges only when it's green and up to date.
+3. The merge deploys to **staging** automatically.
+4. Release: PR `staging` → `prod`. No CI (the same code already passed); only the release lead approves.
+5. The merge to `prod` deploys to **production** after the release lead approves the deploy.
+
+`main` is not used.
+
 ## Rules
 
 - Every task references its ID from the work plan (e.g. `A-05`, `SD-11`) in its commit message and PR.

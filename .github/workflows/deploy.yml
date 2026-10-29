@@ -1,6 +1,8 @@
 # Deploy: `staging` branch -> staging, `prod` branch -> production (D-03).
-# CI runs first. The `production` environment waits for the release lead's approval
-# and only accepts the `prod` branch; `staging` only accepts the `staging` branch.
+# No CI here: code reaches `staging` only through a PR whose CI passed (required check,
+# branch must be up to date), and reaches `prod` only from `staging`.
+# The `production` environment waits for the release lead's approval and only accepts
+# the `prod` branch; `staging` only accepts the `staging` branch.
 name: Deploy
 
 on:
@@ -16,12 +18,8 @@ concurrency:
   cancel-in-progress: false # never cut a deploy (or a migration) off halfway
 
 jobs:
-  ci:
-    uses: ./.github/workflows/ci.yml
-
   deploy:
     name: Deploy to ${{ github.ref_name == 'prod' && 'production' || 'staging' }}
-    needs: ci
     if: github.ref_name == 'staging' || github.ref_name == 'prod'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -44,6 +42,14 @@ jobs:
       - name: Link Supabase project
         run: pnpm exec supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
+      - name: Supabase Auth settings (site URL, Gmail SMTP, OTP, MFA, email template)
+        env:
+          SITE_URL: ${{ github.ref_name == 'prod' && 'https://mystique-26.pages.dev' || 'https://mystique-staging.pages.dev' }}
+          EXTRA_REDIRECTS: ${{ github.ref_name == 'prod' && '' || 'http://localhost:5173/**' }}
+          SMTP_USER: ${{ vars.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: node scripts/supabase-auth-config.mjs
+
       # TODO(D-14): on prod, take an age-encrypted pg_dump here before migrating (Q-06).
       - name: Database migrations
         run: |
@@ -54,11 +60,22 @@ jobs:
             echo "::notice::No migrations yet"
           fi
 
+      # The cron job (008) reads these; the same CRON_SECRET goes to the Edge Functions below.
+      - name: Vault secrets for the notifications cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::warning::CRON_SECRET is not set for this environment; emails will queue but not send"; exit 0
+          fi
+          node scripts/supabase-vault-config.mjs
+
       - name: Edge Function secrets + deploy
         env:
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           SMTP_USER: ${{ vars.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           if ! find supabase/functions -mindepth 2 -maxdepth 2 -name index.ts -not -path '*/_shared/*' | grep -q .; then
             echo "::notice::No Edge Functions yet"; exit 0
@@ -69,6 +86,7 @@ jobs:
             printf 'TURNSTILE_SECRET_KEY=%s\n' "$TURNSTILE_SECRET_KEY"
             printf 'SMTP_USER=%s\n' "$SMTP_USER"
             printf 'SMTP_PASS=%s\n' "$SMTP_PASS"
+            printf 'CRON_SECRET=%s\n' "$CRON_SECRET"
           } > "$f"
           pnpm exec supabase secrets set --env-file "$f"
           rm -f "$f"

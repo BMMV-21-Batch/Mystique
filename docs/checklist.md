@@ -10,12 +10,13 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] Staging project `mystique-staging` (`pdiwvazaqwtjmkrhilbn`), Singapore, healthy (verified)
 - [x] Access tokens work; each account sees only its own project (verified, both)
 - [x] Staging DB password works; CLI linked to **staging only** (verified)
-- [ ] Prod DB password tested (on the first CI deploy)
+- [x] Prod DB password works: read-only `migration list` against `mystique-prod`, 0 migrations (verified)
 - [ ] Org MFA enabled on both Supabase accounts
-- [ ] Auth URLs: site URL + redirect allowlist (staging, prod)
-- [ ] Auth SMTP pointed at Gmail (staging, prod)
-- [ ] Auth hardening pushed: 10-min OTP, TOTP MFA, rate limits (staging, prod)
-- [ ] Auth CAPTCHA (Turnstile) switched on, only after the login page works on staging
+- [x] Staging Auth (as code, `scripts/supabase-auth-config.mjs`): site URL + redirects, Gmail SMTP on 465, 6-digit OTP / 10 min, TOTP on, 150 emails/h, bilingual code email; read back and verified
+- [ ] Prod Auth: applied by the next approved prod deploy (step added to `deploy.yml`)
+- [x] Real sign-in code email received from staging at `dewmandula@gmail.com`, rendering OK (confirmed). CAPTCHA was off for ~5 s and is back on (verified)
+- [ ] Design pass on the sign-in code email (later)
+- [x] Auth CAPTCHA (Turnstile) **on** in staging and prod; keep it on, and toggle off only briefly for one-off backend tests (verified)
 
 ### Cloudflare
 - [x] Prod Pages project `mystique-26` → https://mystique-26.pages.dev (verified via API)
@@ -32,7 +33,7 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] Dedicated prod sender `mystique26.tickets@gmail.com`, App Password, login OK on ports 465 and 587 (verified, nothing sent)
 - [x] Staging SMTP login OK (verified). **Note:** it uses the prod sender *and* prod App Password, so it shares the ~500/day limit and gets revoked together with prod
 - [ ] Staging gets its own sender (`dewminathedeveloper@gmail.com`) or at least its own App Password
-- [ ] Test email sent; lands in the inbox, not spam
+- [x] Test email (staging sign-in code) delivered and rendering OK (confirmed)
 - [ ] Edge Function → `smtp.gmail.com:465` reachability test (decides Gmail vs Brevo API for order emails)
 
 ### GitHub
@@ -48,10 +49,13 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] Branch protection: `prod` PR + 1 approval; `staging` PR; `main` no force-push or delete; admins can bypass (verified)
 - [x] Third-party actions pinned to commit SHAs; gitleaks binary checksum-verified (verified)
 - [x] `undici` patched to 7.30.1 via override (8 advisories in wrangler's deps); `pnpm audit` clean (verified)
-- [ ] First CI run green on GitHub
-- [ ] Staging smoke deploy (checks staging secrets work in CI)
-- [ ] Prod smoke deploy with approval (first test of the prod DB password)
-- [ ] Required status checks on `prod` / `staging` (after the first run, so the check names exist)
+- [x] First CI run green on GitHub (runs 40880729184, 40881235247; verified)
+- [x] Staging smoke deploy green: CI linked `mystique-staging` with the staging secrets (run 40881497786; verified)
+- [x] Prod smoke deploy: approval gate held the run, approved by `dewminawijekoon`, deploy linked `mystique-prod` (run 40882379218; verified)
+- [ ] Accidental direct push `327cff0` to `staging` deployed without CI; CI re-run on staging (run 40884061658) pending result
+- [x] Flow (decided 29 Oct): feature → PR into `staging` (CI) → merge deploys staging → PR `staging` → `prod` (no CI) → merge + approval deploys prod. `main` is unused
+- [x] `staging` requires the 3 CI checks, and the branch must be up to date before merging (verified)
+- [x] Default branch is `staging`, so new PRs and clones start from staging (verified)
 - [x] Sole approver for prod: `production` environment reviewer = `dewminawijekoon`; `prod` requires code-owner review (verified)
 - [ ] `.github/CODEOWNERS` committed and merged into `prod` (code-owner review only takes effect once the file is on `prod`)
 - [ ] Add the other 3 devs as collaborators (write access) when they're ready
@@ -80,22 +84,27 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 
 ### Stream A: Data & logic
 - [x] A-01 Local stack: init + full `supabase start` (verified)
-- [ ] A-02 Migration 001 extensions/types
-- [ ] A-03 Migration 002 tables
-- [ ] A-04 Migration 003 helpers + TRUNCATE guard
-- [ ] A-05 Migration 004 user functions
-- [ ] A-06 Migration 005 admin/dev functions
-- [ ] A-07 Migration 006 RLS/grants
-- [ ] A-08 Migration 007 storage (10 uploads/day)
-- [ ] A-09 Migration 008 cron
-- [ ] A-10 seed.sql
-- [ ] A-11 pgTAP role helpers
-- [ ] A-12 pgTAP T4–T6, T8–T10, T12
-- [ ] A-13 T11 RLS matrix
-- [ ] A-14 T13 audit
-- [ ] A-15 Concurrency T1/T2/T3/T7
-- [ ] A-16 CI security queries
-- [ ] A-17 SD-1/2/5 tests
+- [x] A-02 Migration 001 extensions/types: `db reset` applies it (verified)
+- [x] A-03 Migration 002 tables: RLS on + API grants revoked on every table until 006; anon gets 401 on every table (verified)
+- [x] A-04 Migration 003 helpers + TRUNCATE guard: QR secret generated in-DB; pgTAP `003_foundation` 24/24, incl. T12 UPDATE/DELETE/TRUNCATE (verified)
+- [x] Staging: 001–003 applied by the deploy after merge; pg_cron accepted without a dashboard step (verified)
+- [x] A-05 Migration 004 user functions + `set_my_locale` (SD-11), constraint errors → `VALIDATION` and payment ref ≥ 4 chars (SD-14), `ACCOUNT_SUSPENDED` on every write (SD-5); not API-callable until 006 (anon gets 401); pgTAP `004_user_functions` 41/41 (verified)
+- [x] A-06 Migration 005 admin/dev functions: reject-and-release (SD-1), `admin_set_status` (SD-5), `admin_users_v` fix (SD-10), manifest VOLATILE (SD-12), strict UUID (SD-13), `holder_names` (SD-17), config fields + null clears URL + first-setup insert (SD-19), top uploaders in health (SD-2); pgTAP `005_admin_dev_functions` 71/71, 136 total (verified)
+- [x] A-07 Migration 006 RLS/grants: explicit grant per function (incl. `reject_order(…, boolean)`, `admin_set_status`, `set_my_locale`); SD-3 default privileges incl. the global PUBLIC EXECUTE revoke; anon gets only `get_public_event` (200), everything else 401; pgTAP `006_rls_grants` 30/30, 165 total (verified)
+- [x] A-16 security queries in pgTAP (only `get_public_event` for anon, RLS everywhere, `search_path=''` on every SECURITY DEFINER) (verified)
+- [x] A-08 Migration 007 storage: private 2 MB bucket; own folder only, strict `<uid>/<uuid>.<ext>` name (SD-4), active accounts only, 10 uploads per rolling 24 h (SD-2); no update/delete; `my_upload_quota()` for the client. Live Storage API: 11th upload 400, other folder 400, delete removes nothing (verified)
+- [x] A-09 Migration 008 cron: 3 jobs; notify URL + secret from Vault (SD-15), no-op until both exist (verified locally)
+- [x] Vault secrets automated: every deploy upserts `notify_url` + `cron_secret` from the `CRON_SECRET` GitHub secret and passes the same value to the Edge Functions (`scripts/supabase-vault-config.mjs`; upsert logic tested locally: created / unchanged / updated) (verified)
+- [ ] `CRON_SECRET` GitHub secret set in `staging` and `production` (yours: `openssl rand -hex 32 | gh secret set CRON_SECRET --env …`)
+- [ ] First deploy after that logs "Vault verified" on staging and prod; once D-09 exists, `/dev/health` shows all 3 cron jobs succeeding
+- [x] A-10 seed.sql: config, 6 users (user, buyer2, new, admin A001, admin2 A002, dev D001 @mystique.local), 3 orders (submitted/approved/rejected) via the real functions; local OTP login works end to end with the bilingual template (verified)
+- [x] Local Auth uses the same sign-in code template as staging/prod (`config.toml`) (verified)
+- [ ] A-11 pgTAP role helpers: impersonation is per-file (`pg_temp.as_user`), not a shared helper; every file starts from empty tables so tests don't depend on the seed
+- [x] A-12 pgTAP T4–T6, T8–T10, T12 + rate limit + SD-10/11/14/19 (`004`, `005`, `003`, `012_spec_cases`); 195 tests green (verified)
+- [x] A-13 T11 RLS matrix: tables/views × roles (`006`), storage paths (`007`), all 26 functions × 6 roles (`013_function_matrix`), and a completeness check that fails if a new function isn't in the matrix (verified)
+- [x] A-14 T13 audit: one flow through every state-changing function → the exact 18-row trail, with actor, role, old → new state, request id and client IP (`014_audit_trail`); 232 tests green (verified)
+- [x] A-15 Concurrency T1/T2/T3/T7 (`tests/concurrency/run.sh`, parallel connections, local-only guard, cleans up): 10/10 checks (verified)
+- [x] A-17 SD-1/2/5 tests (`005` release + suspension rules, `007` 11th upload denied + window, `004` suspended writes) (verified)
 
 ### Stream B: User flow
 - [ ] B-01 Web scaffold
@@ -131,7 +140,7 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [ ] D-04 i18n framework
 - [ ] D-05 Sinhala font subset
 - [ ] D-06 Formatters + Zod schemas
-- [ ] D-07 Bilingual OTP template
+- [ ] D-07 Bilingual OTP template (in progress: `supabase/templates/otp-code.html` live on staging; Sinhala needs review, D-15)
 - [ ] D-08 Mail templates
 - [ ] D-09 `send-notifications`
 - [ ] D-10 `health` + UptimeRobot
