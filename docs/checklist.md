@@ -90,7 +90,8 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] Staging: 001–003 applied by the deploy after merge; pg_cron accepted without a dashboard step (verified)
 - [x] A-05 Migration 004 user functions + `set_my_locale` (SD-11), constraint errors → `VALIDATION` and payment ref ≥ 4 chars (SD-14), `ACCOUNT_SUSPENDED` on every write (SD-5); not API-callable until 006 (anon gets 401); pgTAP `004_user_functions` 41/41 (verified)
 - [x] A-06 Migration 005 admin/dev functions: reject-and-release (SD-1), `admin_set_status` (SD-5), `admin_users_v` fix (SD-10), manifest VOLATILE (SD-12), strict UUID (SD-13), `holder_names` (SD-17), config fields + null clears URL + first-setup insert (SD-19), top uploaders in health (SD-2); pgTAP `005_admin_dev_functions` 71/71, 136 total (verified)
-- [ ] A-07 Migration 006 RLS/grants (note: grants must use the new `reject_order(uuid,text,text,boolean)` and add `admin_set_status`, `set_my_locale`)
+- [x] A-07 Migration 006 RLS/grants: explicit grant per function (incl. `reject_order(…, boolean)`, `admin_set_status`, `set_my_locale`); SD-3 default privileges incl. the global PUBLIC EXECUTE revoke; anon gets only `get_public_event` (200), everything else 401; pgTAP `006_rls_grants` 30/30, 165 total (verified)
+- [x] A-16 security queries in pgTAP (only `get_public_event` for anon, RLS everywhere, `search_path=''` on every SECURITY DEFINER) (verified)
 - [ ] A-08 Migration 007 storage (10 uploads/day)
 - [ ] A-09 Migration 008 cron
 - [ ] A-10 seed.sql
@@ -99,7 +100,6 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [ ] A-13 T11 RLS matrix
 - [ ] A-14 T13 audit
 - [ ] A-15 Concurrency T1/T2/T3/T7
-- [ ] A-16 CI security queries
 - [ ] A-17 SD-1/2/5 tests
 
 ### Stream B: User flow

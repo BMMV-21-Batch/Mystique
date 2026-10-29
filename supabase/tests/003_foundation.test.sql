@@ -8,8 +8,8 @@ select is((select count(*)::int from pg_class
            where relnamespace = 'public'::regnamespace and relkind = 'r' and not relrowsecurity),
           0, 'every public table has RLS enabled');
 select is((select count(*)::int from information_schema.role_table_grants
-           where table_schema = 'public' and grantee in ('anon', 'authenticated')),
-          0, 'anon/authenticated have no table grants');
+           where table_schema = 'public' and (grantee = 'anon' or (grantee = 'authenticated' and privilege_type <> 'SELECT'))),
+          0, 'anon has no table grants; authenticated has SELECT only');
 select ok(not has_schema_privilege('anon', 'private', 'usage'), 'anon cannot use schema private');
 select ok(not has_table_privilege('authenticated', 'private.secrets', 'select'), 'authenticated cannot read private.secrets');
 

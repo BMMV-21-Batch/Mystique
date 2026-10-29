@@ -2,7 +2,7 @@
 -- offline (SD-12), suspension (SD-5), admin grants, views (SD-10, SD-17), analytics, health, outbox worker.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(71);
+select plan(70);
 
 -- Fixtures ---------------------------------------------------------------------
 insert into auth.users (id, email) values
@@ -209,11 +209,6 @@ select public.mark_notification((select max(id) from public.notification_outbox)
 select results_eq($$ select status::text, next_attempt_at > now() from public.notification_outbox
                      where id in ((select min(id) from public.notification_outbox), (select max(id) from public.notification_outbox)) order by id $$,
                   $$ values ('sent', true), ('failed', true) $$, 'sent and failed (with back-off) are recorded');
-
--- Still closed to the API until 006 ---------------------------------------------------
-select is((select count(*)::int from information_schema.routine_privileges
-           where routine_schema = 'public' and grantee in ('anon', 'authenticated', 'PUBLIC')),
-          0, 'no public function is executable by anon/authenticated yet');
 
 select * from finish();
 rollback;
