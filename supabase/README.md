@@ -31,6 +31,19 @@ Create a new file with `pnpm exec supabase migration new <name>`, then rename it
   dashboard (the comment in `008` predates this); to rotate, set a new GitHub secret and redeploy.
   Until it is set, the outbox drain job does nothing (no errors) and emails wait in the outbox.
 
+### Backups (D-14)
+
+- **Nightly** (`backup.yml`, 02:00 Colombo, or run it by hand from the Actions tab) and **before every prod migration** (`deploy.yml`): a data-only dump of prod, `age`-encrypted to the keys in `scripts/backup-recipients.txt`, kept as an artifact for 7 / 30 days.
+- **Private keys** are held offline by their owners (default path `~/.config/mystique/backup-age-key.txt`). Without one, a backup cannot be read. Keep a copy in a password manager.
+- **Restore** (local stack or staging only; the script refuses prod):
+  ```bash
+  gh run download <run-id> --repo BMMV-21-Batch/Mystique     # get the .dump.age artifact
+  DB_HOST=127.0.0.1 DB_PORT=54322 DB_USER=postgres PGPASSWORD=postgres scripts/db-restore.sh prod-….dump.age
+  ```
+  For staging: `DB_HOST=aws-0-ap-southeast-1.pooler.supabase.com DB_PORT=5432 DB_USER=postgres.<staging-ref>`.
+  Restoring INTO prod after a disaster is deliberately not scripted: do it by hand with the release lead.
+- Not in the dump: receipt **files** (export Storage manually at close of sales, spec §16.4), and Vault (rewritten by every deploy).
+
 ## functions/
 
 Deno Edge Functions. Shared code goes in `_shared/` (auth, CORS allowlist, Zod, error codes, logging, mail templates in `mail/`, email strings in `i18n/`).

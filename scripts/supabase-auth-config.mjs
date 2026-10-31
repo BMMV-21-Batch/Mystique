@@ -19,6 +19,13 @@ const env = (name, required = true) => {
 const ref = env('SUPABASE_PROJECT_REF');
 const siteUrl = env('SITE_URL').replace(/\/$/, '');
 const redirects = [`${siteUrl}/**`, ...env('EXTRA_REDIRECTS', false).split(',').map((s) => s.trim()).filter(Boolean)];
+
+// Plain-http redirects (localhost dev servers) are for staging only. Fail rather than loosen prod.
+const isStaging = /^https:\/\/[a-z0-9-]*staging[a-z0-9-]*\.pages\.dev$/.test(siteUrl);
+const insecure = redirects.filter((r) => !r.startsWith('https://'));
+if (insecure.length && !isStaging) {
+  throw new Error(`refusing non-https redirects for ${siteUrl}: ${insecure.join(', ')}`);
+}
 const otpEmail = readFileSync(new URL('../supabase/templates/otp-code.html', import.meta.url), 'utf8');
 const otpSubject = 'Mystique: ඔබගේ පිවිසුම් කේතය / Your sign-in code';
 

@@ -13,7 +13,8 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] Prod DB password works: read-only `migration list` against `mystique-prod`, 0 migrations (verified)
 - [ ] Org MFA enabled on both Supabase accounts
 - [x] Staging Auth (as code, `scripts/supabase-auth-config.mjs`): site URL + redirects, Gmail SMTP on 465, 6-digit OTP / 10 min, TOTP on, 150 emails/h, bilingual code email; read back and verified
-- [ ] Prod Auth: applied by the next approved prod deploy (step added to `deploy.yml`)
+- [x] Prod Auth applied and verified by the approved prod deploy (run 40911929899; verified)
+- [ ] Prod redirect allowlist wrongly includes `http://localhost:5173/**` (Actions `&& '' ||` bug, fixed in `deploy.yml`); cleared by the next prod deploy
 - [x] Real sign-in code email received from staging at `dewmandula@gmail.com`, rendering OK (confirmed). CAPTCHA was off for ~5 s and is back on (verified)
 - [ ] Design pass on the sign-in code email (later)
 - [x] Auth CAPTCHA (Turnstile) **on** in staging and prod; keep it on, and toggle off only briefly for one-off backend tests (verified)
@@ -32,9 +33,9 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 ### Mail (Gmail SMTP; replaces the domain plan in X-02/D-02)
 - [x] Dedicated prod sender `mystique26.tickets@gmail.com`, App Password, login OK on ports 465 and 587 (verified, nothing sent)
 - [x] Staging SMTP login OK (verified). **Note:** it uses the prod sender *and* prod App Password, so it shares the ~500/day limit and gets revoked together with prod
-- [ ] Staging gets its own sender (`dewminathedeveloper@gmail.com`) or at least its own App Password
+- [x] Staging has its own sender `dewstealth@gmail.com` with its own App Password: login OK on 465, GitHub `staging` updated, staging Auth re-applied and verified (verified)
 - [x] Test email (staging sign-in code) delivered and rendering OK (confirmed)
-- [ ] Edge Function → `smtp.gmail.com:465` reachability test (decides Gmail vs Brevo API for order emails)
+- [x] Edge Function → `smtp.gmail.com:465`: TLS + login (235) OK from staging in ~2 s, nothing sent; probe deleted afterwards. **Order emails use Gmail SMTP** (verified)
 
 ### GitHub
 - [x] Repo `BMMV-21-Batch/Mystique` made **public** (free plan has no protection for private repos). History scanned: no secrets ever committed (verified)
@@ -52,7 +53,7 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] First CI run green on GitHub (runs 40880729184, 40881235247; verified)
 - [x] Staging smoke deploy green: CI linked `mystique-staging` with the staging secrets (run 40881497786; verified)
 - [x] Prod smoke deploy: approval gate held the run, approved by `dewminawijekoon`, deploy linked `mystique-prod` (run 40882379218; verified)
-- [ ] Accidental direct push `327cff0` to `staging` deployed without CI; CI re-run on staging (run 40884061658) pending result
+- [x] Accidental direct push `327cff0` to `staging` deployed without CI; CI re-run on staging passed (run 40884061658; verified)
 - [x] Flow (decided 29 Oct): feature → PR into `staging` (CI) → merge deploys staging → PR `staging` → `prod` (no CI) → merge + approval deploys prod. `main` is unused
 - [x] `staging` requires the 3 CI checks, and the branch must be up to date before merging (verified)
 - [x] Default branch is `staging`, so new PRs and clones start from staging (verified)
@@ -76,11 +77,11 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 ## 2. R1 tasks (due Mon 2 Nov)
 
 ### Pre-flight
-- [ ] X-01 Freeze interfaces (RPCs, Edge contracts, routes, error codes)
-- [ ] X-02 Mail provider + region decision
+- [x] X-01 Interfaces frozen in `docs/interfaces.md` v1: 26 RPCs with access and errors, reads/RLS, storage, Edge contracts, routes, error codes (+ i18n keys), email payloads, spec overrides
+- [x] X-02 Mail: Gmail SMTP (465) for Auth and order emails, separate staging/prod senders; region ap-southeast-1 (verified)
 - [ ] X-03 Owners for §20 open questions
-- [ ] X-04 Access governance (MFA, members, private repo, branch protection)
-- [ ] X-05 Spec defects triaged
+- [ ] X-04 Access governance: branch protection, environments and public-repo scanning done; still open: MFA confirmations, adding the 3 devs, CODEOWNERS on `prod`
+- [x] X-05 Spec defects triaged: SD-1…21 agreed; the DB ones (SD-1–3, 5, 6, 10–15, 17, 19, 20) are implemented and tested
 
 ### Stream A: Data & logic
 - [x] A-01 Local stack: init + full `supabase start` (verified)
@@ -93,13 +94,16 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [x] A-07 Migration 006 RLS/grants: explicit grant per function (incl. `reject_order(…, boolean)`, `admin_set_status`, `set_my_locale`); SD-3 default privileges incl. the global PUBLIC EXECUTE revoke; anon gets only `get_public_event` (200), everything else 401; pgTAP `006_rls_grants` 30/30, 165 total (verified)
 - [x] A-16 security queries in pgTAP (only `get_public_event` for anon, RLS everywhere, `search_path=''` on every SECURITY DEFINER) (verified)
 - [x] A-08 Migration 007 storage: private 2 MB bucket; own folder only, strict `<uid>/<uuid>.<ext>` name (SD-4), active accounts only, 10 uploads per rolling 24 h (SD-2); no update/delete; `my_upload_quota()` for the client. Live Storage API: 11th upload 400, other folder 400, delete removes nothing (verified)
+- [x] Migration 009: receipts up to **5 MB** per file (most buyers upload PDFs). Live Storage API: 4 MB PDF 200, 6 MB 400; 232 tests green (verified). D-16 must use 5 MB in the storage worst case (10 × 5 MB per account per day)
 - [x] A-09 Migration 008 cron: 3 jobs; notify URL + secret from Vault (SD-15), no-op until both exist (verified locally)
 - [x] Vault secrets automated: every deploy upserts `notify_url` + `cron_secret` from the `CRON_SECRET` GitHub secret and passes the same value to the Edge Functions (`scripts/supabase-vault-config.mjs`; upsert logic tested locally: created / unchanged / updated) (verified)
-- [ ] `CRON_SECRET` GitHub secret set in `staging` and `production` (yours: `openssl rand -hex 32 | gh secret set CRON_SECRET --env …`)
-- [ ] First deploy after that logs "Vault verified" on staging and prod; once D-09 exists, `/dev/health` shows all 3 cron jobs succeeding
+- [x] `CRON_SECRET` GitHub secret set in `staging` and `production` (verified)
+- [x] Staging deploy wrote and verified both Vault secrets (run 40911276257; verified)
+- [x] Prod: all 8 migrations applied; Vault written and verified (run 40911929899; verified)
+- [ ] Once D-09 exists, `/dev/health` shows all 3 cron jobs succeeding (staging and prod)
 - [x] A-10 seed.sql: config, 6 users (user, buyer2, new, admin A001, admin2 A002, dev D001 @mystique.local), 3 orders (submitted/approved/rejected) via the real functions; local OTP login works end to end with the bilingual template (verified)
 - [x] Local Auth uses the same sign-in code template as staging/prod (`config.toml`) (verified)
-- [ ] A-11 pgTAP role helpers: impersonation is per-file (`pg_temp.as_user`), not a shared helper; every file starts from empty tables so tests don't depend on the seed
+- [x] A-11 pgTAP role helpers: per-file `pg_temp.as_user` covers every role in use (anon, user, admin aal1/aal2, dev, service_role); a shared module isn't worth it. Every file starts from empty tables (seed-independent) (closed)
 - [x] A-12 pgTAP T4–T6, T8–T10, T12 + rate limit + SD-10/11/14/19 (`004`, `005`, `003`, `012_spec_cases`); 195 tests green (verified)
 - [x] A-13 T11 RLS matrix: tables/views × roles (`006`), storage paths (`007`), all 26 functions × 6 roles (`013_function_matrix`), and a completeness check that fails if a new function isn't in the matrix (verified)
 - [x] A-14 T13 audit: one flow through every state-changing function → the exact 18-row trail, with actor, role, old → new state, request id and client IP (`014_audit_trail`); 232 tests green (verified)
@@ -135,8 +139,8 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 
 ### Stream D: Platform, i18n, notifications
 - [ ] D-01 Platform setup (in progress: see §1)
-- [ ] D-02 Auth + mail (in progress: see §1)
-- [ ] D-03 CI pipeline (in progress: `ci.yml` + `deploy.yml` written; actionlint, gitleaks, audit and db reset pass locally. Pending: first GitHub run, staging/prod smoke deploys, required status checks)
+- [ ] D-02 Auth + mail: Auth as code on staging and prod, Gmail SMTP for both (separate senders); open: Edge Function → Gmail test, D-07 Sinhala review
+- [x] D-03 CI pipeline: PR → `staging` CI gate (3 required checks), staging/prod deploys with migrations, Auth, Vault; prod approval-gated; both smoke-tested and used for real (verified)
 - [ ] D-04 i18n framework
 - [ ] D-05 Sinhala font subset
 - [ ] D-06 Formatters + Zod schemas
@@ -147,7 +151,10 @@ Task IDs refer to [work-plan.md](work-plan.md). Last updated: Thu 29 Oct 2026.
 - [ ] D-11 Sentry
 - [ ] D-12 CSP headers
 - [ ] D-13 PWA
-- [ ] D-14 Backups + restore test
+- [x] D-14 Backups: encrypted data-only dump (`scripts/db-backup.sh`, age, keys in `scripts/backup-recipients.txt`); restore (`scripts/db-restore.sh`, refuses prod). Tested: local round trip (all counts, QR secret and QR payloads identical, counters continue) and staging → local through the pooler (verified)
+- [x] `backup.yml` nightly 02:00 Colombo + `prod-backup` environment (prod DB password, no approval, `staging` branch only); pre-migration prod dump in `deploy.yml` (actionlint OK)
+- [ ] First nightly backup run green (or run it by hand from Actions after merge)
+- [ ] Backup private key copied to your password manager; a second holder's public key added to `backup-recipients.txt` (spec: two holders)
 - [ ] D-15 Sinhala review + privacy notice
 - [ ] D-16 `quotas.md`
 

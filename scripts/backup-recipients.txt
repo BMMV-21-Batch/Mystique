@@ -1,0 +1,5 @@
+# age public keys that can decrypt database backups (D-14). One per line.
+# The matching private keys are held offline by their owners; never commit one.
+# Add a second holder before the event (spec §16.4): `age-keygen`, then append their public key.
+# Dewmina (release lead), created 29 Oct 2026
+age1lkx6wkf2vzv48x4tqu9jwlk9s2v2a95x0fsf48dtx07mvgwakajsrmdsdn

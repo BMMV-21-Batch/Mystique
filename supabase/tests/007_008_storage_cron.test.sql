@@ -26,8 +26,8 @@ create function pg_temp.upload(folder text, ext text default 'jpg') returns void
 $$;
 grant execute on function pg_temp.upload(text, text) to authenticated;
 
-select is((select public::text || ' ' || file_size_limit from storage.buckets where id = 'receipts'), 'false 2097152',
-          'receipts bucket is private with a 2 MB limit');
+select is((select public::text || ' ' || file_size_limit from storage.buckets where id = 'receipts'), 'false 5242880',
+          'receipts bucket is private with a 5 MB limit (009)');
 
 -- Upload rules ----------------------------------------------------------------------
 select pg_temp.as_user('00000000-0000-0000-0000-000000000e01');
